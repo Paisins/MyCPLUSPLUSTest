@@ -1,2 +1,3 @@
 # MyCPLUSPLUSTest
-just a c++ project test
+
+just a c++ project used to practice importing libraries.
