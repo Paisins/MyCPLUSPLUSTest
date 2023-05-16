@@ -4,13 +4,14 @@ project(MyTest)
 
 set(CMAKE_TOOLCHAIN_FILE vcpkg/scripts/buildsystems/vcpkg.cmake)
 
+set(VCPKG_LIBRARY_LINKAGE "dynamic")
 set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-osx)
 find_package(jsoncpp CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
 # link static
-# target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 
 # link shared
-target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp_lib)
+# target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp_lib)
