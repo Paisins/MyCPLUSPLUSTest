@@ -3,7 +3,11 @@
     "version-string": "0.1.0",
     "dependencies": [
         {
-            "name": "jsoncpp"
+            "name": "jsoncpp",
+            "default-features": false,
+            "features": [
+                "dynamic"
+            ]
         }
     ]
 }

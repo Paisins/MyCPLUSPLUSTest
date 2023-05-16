@@ -10,8 +10,4 @@ find_package(jsoncpp CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
-# link static
 target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
-
-# link shared
-# target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp_lib)
