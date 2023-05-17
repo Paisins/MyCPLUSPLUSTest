@@ -4,10 +4,80 @@ project(MyTest)
 
 set(CMAKE_TOOLCHAIN_FILE vcpkg/scripts/buildsystems/vcpkg.cmake)
 
-set(VCPKG_LIBRARY_LINKAGE "dynamic")
-set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-osx)
+# add path to installed libraraies
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    # macos
+    set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-osx)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # windows
+    set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-windows)
+endif()
+
 find_package(jsoncpp CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
+
+# copy shared library to build path
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+
+# # windows
+# COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+
+# # macos/linux
+# # todo 未测试
+# COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+# )
+
+# add install path
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/build/install)
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+# this command will copy shared libarary(i.e. jsoncpp.dll) to install path
+# it's not best way, but I think it solve my problem at some level.
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+
+    # todo if change to lib, it become a file, why?
+    # ...not just that, bin alse become a file, why?
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> ${CMAKE_INSTALL_PREFIX}/bin
+    COMMAND_EXPAND_LISTS
+)
+
+# this seems only works for inside library, not that downloaded by vcpkg
+install(TARGETS ${PROJECT_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# this work for some not known libaraies
+# include(InstallRequiredSystemLibraries)
+# set(TARGET_FILE_PATH <TARGETFILE:MyTest>)
+# message("TARGET_FILE_PATH: ${TARGET_FILE_PATH}")
+
+# EXECUTABLES ${TARGET_FILE_PATH}
+# RESOLVED_DEPENDENCIES_VAR _resolved_deps
+# UNRESOLVED_DEPENDENCIES_VAR _unresolved_deps
+# DIRECTORIES ENV{PATH} ENVPATH{${CMAKE_PREFIX_PATH}/bin}
+# install(CODE [[
+# file(GET_RUNTIME_DEPENDENCIES
+# LIBRARIES $<TARGET_FILE:MyTest>
+# EXECUTABLES $<TARGET_FILE:MyTest>
+# RESOLVED_DEPENDENCIES_VAR _r_deps
+# UNRESOLVED_DEPENDENCIES_VAR _u_deps
+# )
+
+# foreach(dep IN LISTS _resolved_deps)
+# # 获取依赖库的文件名
+# get_filename_component(dep_filename "{dep}" NAME)
+
+# # 设置目标安装路径
+# set(dep_install_dir "bin")
+
+# # 安装依赖库
+# install(FILES "dep"DESTINATION"{dep}" DESTINATION "dep"DESTINATION"{dep_install_dir}")
+# endforeach()
+# ]])
