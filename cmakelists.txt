@@ -26,6 +26,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     )
 endif()
 
+# ----installed libraries from vcpkg----
+
 # jsoncpp
 find_package(jsoncpp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
@@ -33,6 +35,22 @@ target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 # sqlite3
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::sqlite3::sqlite3)
+
+# ----my own libraries----
+# my_print
+set(LIBRARY_PATH "${CMAKE_SOURCE_DIR}/libs")
+target_include_directories(${PROJECT_NAME} PUBLIC ${LIBRARY_PATH})
+message("${LIBRARY_PATH}")
+find_library(MYPRINT_LIB MyPrint PATHS ${LIBRARY_PATH})
+
+if(MYPRINT_LIB)
+    message(STATUS "Found MyPrint library: ${MYPRINT_LIB}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${MYPRINT_LIB})
+else()
+    message(FATAL_ERROR "MyPrint library not found")
+endif()
+
+# todo why all libraries staticlly linked to target?
 
 # copy shared library to build path
 # add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

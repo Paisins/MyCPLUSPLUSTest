@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sqlite3.h>
 #include <json/json.h>
+#include "my_print.h"
 
 int use_jsoncpp()
 {
@@ -80,5 +81,6 @@ int main()
 {
     use_jsoncpp();
     use_sqlite3();
+    my_print::print("test");
     return 0;
 }
