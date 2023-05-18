@@ -4,6 +4,9 @@
     "dependencies": [
         {
             "name": "jsoncpp"
+        },
+        {
+            "name": "sqlite3"
         }
     ]
 }
