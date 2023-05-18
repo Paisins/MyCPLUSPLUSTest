@@ -9,24 +9,16 @@ set(CMAKE_TOOLCHAIN_FILE vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
-# add path to installed libraraies
+# add path to installed libraraies to serach config.cmake
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # macos
     set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-osx)
-
-    # todo use jsoncpp staticly so can't test this
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     # windows
     set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-windows)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
 endif()
 
-# ----installed libraries from vcpkg----
+# ---- libraries installed from vcpkg----
 
 # jsoncpp
 find_package(jsoncpp CONFIG REQUIRED)
@@ -36,11 +28,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::sqlite3::sqlite3)
 
-# ----my own libraries----
+# ----my own libraries from outside----
 # my_print
 set(LIBRARY_PATH "${CMAKE_SOURCE_DIR}/libs")
 target_include_directories(${PROJECT_NAME} PUBLIC ${LIBRARY_PATH})
-message("${LIBRARY_PATH}")
+message("LIBRARY_PATH: ${LIBRARY_PATH}")
 find_library(MYPRINT_LIB MyPrint PATHS ${LIBRARY_PATH})
 
 if(MYPRINT_LIB)
@@ -50,59 +42,73 @@ else()
     message(FATAL_ERROR "MyPrint library not found")
 endif()
 
-# todo why all libraries staticlly linked to target?
+# todo why all libraries staticlly linked to target in macos?
 
-# copy shared library to build path
+# add path to installed libraraies
+# if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+# # todo use jsoncpp staticly so can't test this
 # add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+# COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+# )
+# elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+# # todo chatgp-4 says this work also for macos and linux, ok, wait to test
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+# COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+# COMMAND_EXPAND_LISTS
+# )
+# endif()
+
+# todo chatgp-4 says this works cross platforms, ok, wait to test
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    COMMAND_EXPAND_LISTS
+)
+
+# can this comman copy header files from libs
+# target_sources(${PROJECT_NAME} PRIVATE ${LIBRARY_PATH}/libs/*.h)
 
 # add install path
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/build/install)
 
+# if I add libs to target, can it move to install path too?
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/libs)
+
+# copy target to install path
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
-# this command will copy shared libarary(i.e. jsoncpp.dll) to install path
-# it's not best way, but I think it solve my problem at some level.
-# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-# COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-
-# # todo if change to lib, it become a file, why?
-# # ...not just that, bin alse become a file, why?
-# COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> ${CMAKE_INSTALL_PREFIX}/bin
-# COMMAND_EXPAND_LISTS
-# )
-
-# this seems only works for inside library, not that downloaded by vcpkg
+# this seems only works for libraries inside of this project, not those downloaded by vcpkg
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
 
-# this work for some not known libaraies
-# include(InstallRequiredSystemLibraries)
-# set(TARGET_FILE_PATH <TARGETFILE:MyTest>)
-# message("TARGET_FILE_PATH: ${TARGET_FILE_PATH}")
+# and finally!!!
+install(FILES $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-# EXECUTABLES ${TARGET_FILE_PATH}
-# RESOLVED_DEPENDENCIES_VAR _resolved_deps
-# UNRESOLVED_DEPENDENCIES_VAR _unresolved_deps
-# DIRECTORIES ENV{PATH} ENVPATH{${CMAKE_PREFIX_PATH}/bin}
-# install(CODE [[
-# file(GET_RUNTIME_DEPENDENCIES
-# LIBRARIES $<TARGET_FILE:MyTest>
-# EXECUTABLES $<TARGET_FILE:MyTest>
-# RESOLVED_DEPENDENCIES_VAR _r_deps
-# UNRESOLVED_DEPENDENCIES_VAR _u_deps
-# )
+# -------------install files in libs-------------
+file(GLOB DLL_FILES "${CMAKE_SOURCE_DIR}/libs/*.dll")
 
-# foreach(dep IN LISTS _resolved_deps)
-# # 获取依赖库的文件名
-# get_filename_component(dep_filename "{dep}" NAME)
+set(FILE_EXTENSIONS h lib)
+set(H_LIB_FILES "")
 
-# # 设置目标安装路径
-# set(dep_install_dir "bin")
+foreach(EXT ${FILE_EXTENSIONS})
+    message("EXT: ${EXT}")
+    file(GLOB FILES "${CMAKE_SOURCE_DIR}/libs/*.${EXT}")
+    list(APPEND H_LIB_FILES ${FILES})
+endforeach()
 
-# # 安装依赖库
-# install(FILES "dep"DESTINATION"{dep}" DESTINATION "dep"DESTINATION"{dep_install_dir}")
-# endforeach()
-# ]])
+message(STATUS "H_LIB_FILES: ${H_LIB_FILES}")
+
+# copy .dll to bin
+install(FILES ${DLL_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+# copy .h .lib to lib
+install(FILES ${H_LIB_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
+# todo so the best way to install my own libraries is to make them imported?
+# install(IMPORTED_RUNTIME_ARTIFACTS
