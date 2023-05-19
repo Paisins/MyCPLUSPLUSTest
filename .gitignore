@@ -30,7 +30,9 @@
 *.exe
 *.out
 *.app
+
 # my build
 *build
-# packages
+
+# vcpkg packages
 vcpkg_installed
