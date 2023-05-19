@@ -48,11 +48,10 @@ message("LIBRARY_PATH: ${LIBRARY_PATH}")
 find_library(MYPRINT_LIB MyPrint PATHS ${LIBRARY_PATH})
 
 if(MYPRINT_LIB)
-    message(STATUS "Found MyPrint library: ${MYPRINT_LIB}")
+    message("use myprint")
     set(USE_MYPRINT "use myprint lib or not" On)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${MYPRINT_LIB})
 else()
-    message(FATAL_ERROR "MyPrint library not found")
     set(USE_MYPRINT "use myprint lib or not" off)
 endif()
 
