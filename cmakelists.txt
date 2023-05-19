@@ -17,9 +17,20 @@ add_executable(${PROJECT_NAME} main.cpp)
 # add path to serach config.cmake
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-osx)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-windows)
+
+    # set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-windows-static)
 endif()
+
+# todo not work
+# if(MSVC)
+# message("test test")
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+# endif()
 
 # jsoncpp
 find_package(jsoncpp CONFIG REQUIRED)
@@ -38,10 +49,14 @@ find_library(MYPRINT_LIB MyPrint PATHS ${LIBRARY_PATH})
 
 if(MYPRINT_LIB)
     message(STATUS "Found MyPrint library: ${MYPRINT_LIB}")
+    set(USE_MYPRINT "use myprint lib or not" On)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${MYPRINT_LIB})
 else()
     message(FATAL_ERROR "MyPrint library not found")
+    set(USE_MYPRINT "use myprint lib or not" off)
 endif()
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE "USE_MYPRINT")
 
 # -------------------------------- build --------------------------------
 
@@ -113,7 +128,10 @@ install(FILES ${H_LIB_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 # add dynamic files search path after install
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../lib")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    # todo wait to test
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E env PATH=\"${CMAKE_INSTALL_PREFIX}/bin;$ENV{PATH}\" ${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}.exe)")
+
+    # elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # todo when move install to another windows system, it can't work, I guess because it can't find dll
+    # todo but I already put dll with target in same directory, so why?
+    # maybe it is about runtime libraries
+    # install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E env PATH=\"${CMAKE_INSTALL_PREFIX}/lib;$ENV{PATH}\" ${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}.exe)")
 endif()
